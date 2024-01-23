@@ -20,13 +20,15 @@ namespace Homework_20_01_II
         public Form1()
         {
             InitializeComponent();
+
             textBox1.Enabled = false;
-            textBox2.Enabled = false;
-            textBox3.Enabled = false;
             button1.Enabled = false;
-            button2.Enabled = false;
             button3.Enabled = false;
             button4.Enabled = false;
+            textBox2.Enabled = false;
+            textBox3.Enabled = false;
+
+            Connect();
         }
 
         public async Task Connect()
@@ -34,35 +36,38 @@ namespace Homework_20_01_II
             IPAddress ip = IPAddress.Parse("127.0.0.1");
             int port = 8888;
 
+            if (client != null && client.Connected)
+            {
+                client.Close();
+            }
+
             client = new TcpClient();
 
             try
             {
                 await client.ConnectAsync(ip, port);
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Вы подключились к серверу.");
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Авторизируйтесь для продолжения.");
-                Task.Run(() => Read_Message());
+                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Соединение с сервером установлено.");
+                listBox1.Items.Add("[Подсказка]: Для продолжения вам необходимо авторизироваться.");
+                listBox1.Items.Add("[Подсказка]: Нажмите 'Войти' или 'Зарегистрироваться', не забудьте ввести логин и пароль.");
 
-                button5.Enabled = false;
                 textBox2.Enabled = true;
                 textBox3.Enabled = true;
-                button2.Enabled = true;
                 button3.Enabled = true;
                 button4.Enabled = true;
-                textBox1.Enabled = true;
-                button1.Enabled = true;
+
+                await Task.Run(() => Read_Message());
 
             }
             catch(Exception ex)
             {
                 textBox1.Enabled = false;
-                textBox2.Enabled = false;
-                textBox3.Enabled = false;
                 button1.Enabled = false;
-                button2.Enabled = false;
                 button3.Enabled = false;
                 button4.Enabled = false;
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {ex.Message}");
+                textBox2.Enabled = false;
+                textBox3.Enabled = false;
+
+                listBox1.Items.Add($"[Ошибка]: {ex.Message}");
             }
         }
 
@@ -73,11 +78,6 @@ namespace Homework_20_01_II
                 string message = $"{textBox2.Text}: {textBox1.Text}";
                 byte[] data = Encoding.UTF8.GetBytes(message);
                 await client.GetStream().WriteAsync(data, 0, data.Length);
-
-                data = new byte[256];
-                int bytesRead = await client.GetStream().ReadAsync(data, 0, data.Length);
-                string response = Encoding.UTF8.GetString(data, 0, bytesRead);
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {response}");
             }
             catch (Exception ex)
             {
@@ -91,17 +91,138 @@ namespace Homework_20_01_II
             {
                 while (true)
                 {
+
                     byte[] data = new byte[256];
                     int bytesRead = await client.GetStream().ReadAsync(data, 0, data.Length);
                     string response = Encoding.UTF8.GetString(data, 0, bytesRead);
-                    listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {response}");
+
+                    if (listBox1.InvokeRequired)
+                    {
+                        listBox1.Invoke(new Action(() =>
+                        {
+                            listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {response}");
+                        }));
+                    }
+                    else
+                    {
+                        listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {response}");
+                    }
+
+
+                    if (response == "Логин занят другим пользователем.")
+                    {
+
+                        textBox2.Invoke(new Action(() =>
+                        {
+                            textBox2.Enabled = false; 
+                        }));
+
+                        textBox3.Invoke(new Action(() =>
+                        {
+                            textBox3.Enabled = false; 
+                        }));
+
+                        button3.Invoke(new Action(() =>
+                        {
+                            button3.Enabled = false;
+                        }));
+
+                        button4.Invoke(new Action(() =>
+                        {
+                            button4.Enabled = false;
+                        }));
+
+                        if (client != null && client.Client != null && client.Connected)
+                        {
+                            client.Close();
+                        }
+
+                        listBox1.Invoke(new Action(() =>
+                        {
+                            listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Соединение с сервером разорвано.");
+                            listBox1.Items.Add("[Подсказка]: Для повторного соединения с сервером перезапустите клиент.");
+                        }));
+
+                    }
+                    else if (response == "Неверный логин или пароль.")
+                    {
+                        textBox2.Invoke(new Action(() =>
+                        {
+                            textBox2.Enabled = false;
+                        }));
+
+                        textBox3.Invoke(new Action(() =>
+                        {
+                            textBox3.Enabled = false;
+                        }));
+
+                        button3.Invoke(new Action(() =>
+                        {
+                            button3.Enabled = false;
+                        }));
+
+                        button4.Invoke(new Action(() =>
+                        {
+                            button4.Enabled = false;
+                        }));
+
+                        if (client != null && client.Client != null && client.Connected)
+                        {
+                            client.Close();
+                        }
+
+                        listBox1.Invoke(new Action(() =>
+                        {
+                            listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Соединение с сервером разорвано.");
+                            listBox1.Items.Add("[Подсказка]: Для повторного соединения с сервером перезапустите клиент.");
+                        }));
+                    }
+                    else if (response == "Добро пожаловать.")
+                    {
+                        textBox1.Invoke(new Action(() =>
+                        {
+                            textBox1.Enabled = true;
+                        }));
+
+                        button1.Invoke(new Action(() =>
+                        {
+                            button1.Enabled = true;
+                        }));
+
+                        textBox2.Invoke(new Action(() =>
+                        {
+                            textBox2.Enabled = false;
+                        }));
+
+                        textBox3.Invoke(new Action(() =>
+                        {
+                            textBox3.Enabled = false;
+                        }));
+
+                        button3.Invoke(new Action(() =>
+                        {
+                            button3.Enabled = false;
+                        }));
+
+                        button4.Invoke(new Action(() =>
+                        {
+                            button4.Enabled = false;
+                        }));
+                    }
                 }
             }
             catch (Exception ex)
             {
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {ex.Message}");
+                if (listBox1.InvokeRequired)
+                {
+                    listBox1.Invoke(new Action(() =>
+                    {
+                        listBox1.Items.Add($"[Ошибка]: {ex.Message}");
+                    }));
+                }
             }
         }
+
 
         public async Task Sign_Up()
         {
@@ -115,15 +236,11 @@ namespace Homework_20_01_II
 
                 byte[] data = Encoding.UTF8.GetBytes(credentials);
                 await client.GetStream().WriteAsync(data, 0, data.Length);
-
-                byte[] data1 = new byte[256];
-                int bytesRead = await client.GetStream().ReadAsync(data1, 0, data1.Length);
-                string response = Encoding.UTF8.GetString(data1, 0, bytesRead);
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {response}");
+                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Выполняется авторизация");
             }
             catch (Exception ex)
             {
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {ex.Message}");
+                listBox1.Items.Add($"[Ошибка]: {ex.Message}");
             }
         }
 
@@ -139,39 +256,17 @@ namespace Homework_20_01_II
 
                 byte[] data = Encoding.UTF8.GetBytes(credentials);
                 await client.GetStream().WriteAsync(data, 0, data.Length);
-
-                byte[] data1 = new byte[256];
-                int bytesRead = await client.GetStream().ReadAsync(data1, 0, data1.Length);
-                string response = Encoding.UTF8.GetString(data1, 0, bytesRead);
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {response}");
+                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Выполняется авторизация");
             }
             catch (Exception ex)
             {
-                listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: {ex.Message}");
+                listBox1.Items.Add($"[Ошибка]: {ex.Message}");
             }
         }
 
         private async void button1_Click(object sender, EventArgs e)
         {
             await Send_Message();
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            textBox1.Enabled = false;
-            textBox2.Enabled = false;
-            textBox3.Enabled = false;
-            button1.Enabled = false;
-            button2.Enabled = false;
-            button3.Enabled = false;
-            button4.Enabled = false;
-            button5.Enabled = true;
-
-            if (client != null && client.Connected)
-            {
-                client.Close();
-            }
-            listBox1.Items.Add($"[{DateTime.Now.TimeOfDay:hh\\:mm\\:ss}]: Вы отключились от сервера.");
         }
 
         private async void button4_Click(object sender, EventArgs e)
@@ -182,11 +277,6 @@ namespace Homework_20_01_II
         private async void button3_Click(object sender, EventArgs e)
         {
             await Sign_In();
-        }
-
-        private async void button5_Click(object sender, EventArgs e)
-        {
-            await Connect();
         }
     }
 }

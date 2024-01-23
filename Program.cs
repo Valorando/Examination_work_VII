@@ -31,13 +31,21 @@ namespace Homework_20_01
 
                 if (!File.Exists("data.json"))
                 {
-                    User[] users = new User[] 
+                    Console.WriteLine($"[{DateTime.Now}]: data.json не обнаружен, выполняется создание.");
+
+                    User[] users = new User[]
                     {
-                        new User { login = "---", password = "---" },
+                        new User { login = "", password = "" },
                     };
 
                     string json = JsonConvert.SerializeObject(users);
                     File.WriteAllText("data.json", json);
+
+                    Console.WriteLine($"[{DateTime.Now}]: data.json успешно создан.");
+                }
+                else
+                {
+                    Console.WriteLine($"[{DateTime.Now}]: data.json обнаружен.");
                 }
 
                 IPAddress ip = IPAddress.Parse("127.0.0.1");
@@ -51,9 +59,9 @@ namespace Homework_20_01
                 while (true)
                 {
                     TcpClient client = await server.AcceptTcpClientAsync();
-                    connectedClients.Add(client); 
+                    connectedClients.Add(client);
 
-                    _ = Task.Run(() => HandleClient(client));
+                    await Task.Run(() => HandleClient(client));
                 }
             }
             catch(Exception ex)
@@ -98,12 +106,9 @@ namespace Homework_20_01
 
                         if (loginExists)
                         {
-                            string confirmationMessage = "Логин уже занят другим пользователем, переподключитесь и попробуйте снова.";
+                            string confirmationMessage = "Логин занят другим пользователем.";
                             byte[] confirmationBytes = Encoding.UTF8.GetBytes(confirmationMessage);
-
-                            
                             await Task.Run(() => client.GetStream().Write(confirmationBytes, 0, confirmationBytes.Length));
-
                         }
                         else
                         {
@@ -116,11 +121,9 @@ namespace Homework_20_01
 
                             string confirmationMessage = "Добро пожаловать.";
                             byte[] confirmationBytes = Encoding.UTF8.GetBytes(confirmationMessage);
-
-                            
                             await Task.Run(() => client.GetStream().Write(confirmationBytes, 0, confirmationBytes.Length));
 
-                            Console.WriteLine($"[{DateTime.Now}]: {login} подключился.");
+                            Console.WriteLine($"[{DateTime.Now}]: {login} зарегистрировался на сервере.");
                             userNames.Add(login);
 
                         }
@@ -146,38 +149,30 @@ namespace Homework_20_01
                         {
                             string confirmationMessage = "Добро пожаловать.";
                             byte[] confirmationBytes = Encoding.UTF8.GetBytes(confirmationMessage);
-
-                            
                             await Task.Run(() => client.GetStream().Write(confirmationBytes, 0, confirmationBytes.Length));
 
-                            Console.WriteLine($"[{DateTime.Now}]: {login} подключился.");
+                            Console.WriteLine($"[{DateTime.Now}]: {login} выполнил вход в аккаунт.");
                             userNames.Add(login);
-
                         }
                         else
                         {
-                            string confirmationMessage = "Неверный логин или пароль, переподключитесь и попробуйте снова.";
+                            string confirmationMessage = "Неверный логин или пароль.";
                             byte[] confirmationBytes = Encoding.UTF8.GetBytes(confirmationMessage);
-
-                            
                             await Task.Run(() => client.GetStream().Write(confirmationBytes, 0, confirmationBytes.Length));
-
                         }
                     }
+                }
 
+                while ((bytes = await client.GetStream().ReadAsync(data, 0, data.Length)) != 0)
+                {
+                    string message = Encoding.UTF8.GetString(data, 0, bytes);
+                    Console.WriteLine($"[{DateTime.Now}]: {message}");
 
-                    while ((bytes = await client.GetStream().ReadAsync(data, 0, data.Length)) != 0)
+                    foreach (var connectedClient in connectedClients)
                     {
-                        string message = Encoding.UTF8.GetString(data, 0, bytes);
-                        Console.WriteLine($"[{DateTime.Now}]: {message}");
-
-                            foreach (var connectedClient in connectedClients)
-                            {
-                                byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-                                await connectedClient.GetStream().WriteAsync(messageBytes, 0, messageBytes.Length);
-                            }
+                        byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+                        await connectedClient.GetStream().WriteAsync(messageBytes, 0, messageBytes.Length);
                     }
-
                 }
             }
             catch (Exception ex)
